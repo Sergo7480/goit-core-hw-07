@@ -1,4 +1,3 @@
-from collections import UserDict
 from datetime import datetime, timedelta
 
 class Field:
@@ -17,7 +16,8 @@ class Phone(Field):
 class Birthday(Field):
     def __init__(self, value):
         try:
-            self.value = datetime.strptime(value, "%d.%m.%Y").date()
+            datetime.strptime(value, "%d.%m.%Y")
+            self.value = value  # Store as string
         except ValueError:
             raise ValueError("Invalid date format. Use DD.MM.YYYY")
 
@@ -45,10 +45,13 @@ class Record:
 
     def __str__(self):
         phones = ", ".join(p.value for p in self.phones)
-        birthday = self.birthday.value.strftime("%d.%m.%Y") if self.birthday else "No birthday"
+        birthday = self.birthday.value if self.birthday else "No birthday"
         return f"Name: {self.name.value}, Phones: {phones}, Birthday: {birthday}"
 
-class AddressBook(UserDict):
+class AddressBook:
+    def __init__(self):
+        self.data = {}
+
     def add_record(self, record):
         self.data[record.name.value] = record
 
@@ -60,7 +63,7 @@ class AddressBook(UserDict):
         upcoming = []
         for record in self.data.values():
             if record.birthday:
-                bday = record.birthday.value.replace(year=today.year)
+                bday = datetime.strptime(record.birthday.value, "%d.%m.%Y").date().replace(year=today.year)
                 if bday < today:
                     bday = bday.replace(year=today.year + 1)
                 delta = (bday - today).days
@@ -125,7 +128,7 @@ def show_birthday(args, book):
     name = args[0]
     record = book.find(name)
     if record and record.birthday:
-        return record.birthday.value.strftime("%d.%m.%Y")
+        return record.birthday.value
     return "Birthday not found."
 
 @input_error
@@ -136,9 +139,9 @@ def birthdays(_, book):
     return "No upcoming birthdays."
 
 def parse_input(user_input):
-    parts = user_input.strip().split(" ")
-    command = parts[0]
-    args = parts[1:]
+    parts = user_input.strip().split(" ", 1)
+    command = parts[0].lower()
+    args = parts[1].split() if len(parts) > 1 else []
     return command, args
 
 def main():
